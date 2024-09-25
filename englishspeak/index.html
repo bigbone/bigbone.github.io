@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>测试</title>
+	<style>
+		.worditem{
+			padding-left:6px;
+			padding-right:6px;
+			margin-right:4px;
+			display: inline-block;
+			border:1px solid #e9e9e9;
+			color:#e3e3e3;
+		}
+		.cur{
+			background-color: #f0f8d2;
+			color:black;
+		}
+		.wordtextarea{
+			outline: 0;
+			width: 100%;
+			height: 260px;
+			resize: none;
+			font-size: 16px;
+			padding: 10px;
+			padding-right: 24px;
+			border: 1px solid rgba(120, 130, 140, .25);
+		}
+	</style>
+</head>
+<body>
+<div><textarea class="wordtextarea" id="inputword"></textarea></div>
+<button onclick="splitword()">genworld</button>
+<button onclick="speakenglish()">speak</button>
+<div id="result"></div>
+</body>
+<script type="text/javascript">
+
+var speakline =0;
+var currlineindex =0;
+var lines = [];
+function  splitword(){
+	 var inputword = document.getElementById('inputword').value;
+	 if(inputword){
+		lines  = inputword.split('\n');
+		if(lines.length==0){
+			return;
+		}
+		var htmlarr=[];
+		lines.forEach(function(line,lindex){
+			if(line){
+				var arr = line.match(/(\w+)(['.,!?]+)?/g);
+				htmlarr.push('<p node-type="line'+lindex+'">');
+				arr.map(function(item,index){
+					item && htmlarr.push('<span class="worditem" data-index="'+index+'" onclick=speak("'+item+'")>'+item+'</span>')
+				});
+				htmlarr.push('</p>');
+			}
+		});
+		document.getElementById('result').innerHTML=htmlarr.join('');
+	 }
+}
+
+function speakenglish(){
+	window.speechSynthesis.cancel();
+	speakline =0;
+	currlineindex=0;
+	var inputword = document.getElementById('inputword').value;
+	if(inputword){
+		lines  = inputword.split('\n');
+		if(lines.length==0){
+			return;
+		}
+		lines.forEach(function(line,lindex){
+			if(line){
+				speak(line,true);
+			}
+		});
+	}
+}
+var voices = window.speechSynthesis.getVoices();
+function speak(text,addevent){
+	if(!text){
+		return;
+	}
+	if ('speechSynthesis' in window) {
+	  // 创建一个新的 SpeechSynthesisUtterance 对象
+	  var utterance = new SpeechSynthesisUtterance(text);
+
+	  // 设置朗读文本的属性
+	  //utterance.lang = 'en-US';
+	  utterance.rate = 1.0; // 语速较快
+	  utterance.pitch = 1.0; // 正常音调
+	  utterance.volume = 1.0; // 正常音量
+
+	  // 获取可用的语音列表，并选择一个语音
+	  //var voices = window.speechSynthesis.getVoices();//(voices) => {
+	   //utterance.voice = voices.filter((voice) => voice.lang === 'zh-CN')[0];
+	   //console.log(utterance.voice);
+	  //});
+	 if(addevent){
+		// 监听开始朗读事件
+		utterance.addEventListener('start', function() {
+			console.log('Started speaking');
+			currlineindex =0;
+		});
+
+		// 监听朗读结束事件
+		utterance.addEventListener('end', function() {
+			console.log('Finished speaking');
+			speakline++;
+		});
+
+		// 监听错误事件
+		utterance.addEventListener('error', function(event) {
+			console.error('An error occurred:', event.error);
+		});
+
+		utterance.addEventListener('boundary', function(event) {
+			var wordspan = document.querySelectorAll("[node-type='line"+speakline+"'] [data-index='"+currlineindex+"']")[0];
+			wordspan && wordspan.classList.add('cur');
+			currlineindex++;
+			var word = event.target.text.substr(event.charIndex,event.charLength);
+			if(/(\w+)(['.,!?]+)?/.test(word)){
+				var wordspan = document.querySelectorAll("[node-type='line"+speakline+"'] [data-index='"+currlineindex+"']")[0];
+				wordspan && wordspan.classList.add('cur');
+				currlineindex++;
+			}
+			console.log('当前遇到的单词或者句子', event.target.text.substr(event.charIndex,event.charLength));
+		});
+	}
+
+	  // 开始朗读
+	  window.speechSynthesis.speak(utterance);
+	} else {
+	  console.log('Browser does not support speech synthesis.');
+	}
+}
+
+</script>
+</html>
